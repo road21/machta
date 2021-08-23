@@ -1,0 +1,15 @@
+.metals
+.bloop
+.idea
+target
+.dotty-ide-disabled
+metals.sbt
+*.code-workspace
+.vscode
+*.sc
+.logs
+.config.conf
+test.env
+.bsp
+.scripts
+.local
