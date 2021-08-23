@@ -5,7 +5,7 @@
   import hkd.core.@@
   import hkd.crud.Tags.{Read, Upd, Init}
   import hkd.crud.UpdateField.{Set, Ignore}
-  import hkd.crud.NoValue
+  import hkd.crud.{NoValue, HKDCrudCompanion}
   import java.time.Instant
 
   case class MyData[F[_]](
