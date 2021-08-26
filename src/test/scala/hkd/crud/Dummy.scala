@@ -1,16 +1,17 @@
 package hkd.crud
 
 import hkd.core.@@
-import hkd.crud.Tags.{ReadUpd, ReadUpdInit, Read, Upd, Init}
-import hkd.crud.UpdateField.{Set, Ignore}
+import hkd.crud.Tags.{Init, Read, Upd}
+import hkd.crud.UpdateField.{Ignore, Set}
 import org.junit.Test
+
 import java.time.Instant
 
 case class MyData[F[_]](
   id: F[Long @@ Read],
-  name: F[Option[String] @@ ReadUpdInit],
-  age: F[Int @@ ReadUpdInit],
-  updated: F[Instant @@ ReadUpd]
+  name: F[Option[String] @@ (Read & Upd & Init)],
+  age: F[Int @@ (Read & Upd & Init)],
+  updated: F[Instant @@ (Read & Upd)]
 )
 
 object MyData extends HKDCrudCompanion[MyData]
