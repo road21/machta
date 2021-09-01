@@ -2,16 +2,20 @@ package hkd.crud
 
 import hkd.crud.Tags.UpdReq
 import hkd.core.{@@, DropTags}
-import Tags.{Init, Read, Upd, UpdReq}
+import Tags.{Init, Upd, UpdReq, UpdCol}
 
-object TagMatcher {
+object TagMatcher:
   type Find[X, Tag, F[_]] = X match
     case a @@ (_ <: Tag) => F[DropTags[a]]
-    case a @@ _ => InitM[a]
+    case a @@ _ => Find[a, Tag, F]
     case _ => NoValue.type
 
   type InitM[X] = Find[X, Init, [x] =>> x]
-  type ReadM[X] = Find[X, Read, [x] =>> x]
-  type UpdM[X] = Find[X, Upd, UpdateField]
-  type UpdReqM[X] = Find[X, UpdReq, [x] =>> x]
-}
+  type ReadM[X] = DropTags[X]
+
+  type UpdM[X] = X match
+    case a @@ (_ <: UpdReq) => DropTags[a]
+    case a @@ (_ <: UpdCol) => UpdateCField[DropTags[a]]
+    case a @@ (_ <: Upd) => UpdateField[DropTags[a]]
+    case a @@ _ => UpdM[a]
+    case _ => NoValue.type
