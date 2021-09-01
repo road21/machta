@@ -7,3 +7,4 @@ object Tags:
   trait Upd
   trait UpdReq
   trait UpdCol
+  trait Unchecked

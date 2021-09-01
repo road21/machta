@@ -1,7 +1,7 @@
 package hkd.crud
 
 import hkd.core.{@@, Collection}
-import hkd.crud.Tags.{Init, Upd, UpdCol, UpdReq}
+import hkd.crud.Tags.{Init, Upd, UpdCol, UpdReq, Unchecked}
 import hkd.crud.UpdateField.{Ignore, Set}
 import org.junit.Test
 
@@ -12,13 +12,16 @@ case class MyData[F[_]](
   name: F[Option[String] @@ (Upd & Init)],
   age: F[Int @@ (Upd & Init)],
   updated: F[Instant @@ UpdReq],
-  tags: F[Vector[String] @@ (Init & UpdCol)]
+  tags: F[Vector[String] @@ (Init & UpdCol)],
+  phone: F[Phone @@ (Upd & Init & Unchecked)]
 )
 
 object MyData extends HKDCrudCompanion[MyData]
 
 class Dummy:
-  val initData = new MyData.Create(NoValue, Some("zopa"), 20, NoValue, Vector("1"))
+  val phone: Phone = ???
+  val initData = new MyData.Create(NoValue, Some("zopa"), 20, NoValue, Vector("1"), phone)
+  val initUData = new MyData.UncheckedCreate(NoValue, Some("zopa"), 20, NoValue, Vector("1"), "+7916")
   val updData = new MyData.Update(
     NoValue,
     Set(Some("zopa")),
