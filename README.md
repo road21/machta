@@ -10,28 +10,15 @@ import hkd.crud.NoValue.noValue
 import hkd.crud.{NoValue, HKDCrudCompanion, UpdateCollection, Raw}
 import CustomTypes.{Phone, Role}
 import org.junit.Test
-
 import java.time.Instant
 
-object CustomTypes:
-  opaque type Phone = String
-  object Phone:
-    def unsafeApply(str: String): Phone = str
-    implicit val valid: Validatable.Aux[Phone, String] = new Validatable[Phone] { type Raw = String }
-
-  opaque type Role = String
-  object Role:
-    def unsafeApply(str: String): Role = str
-    implicit val valid: Validatable.Aux[Role, String] = new Validatable[Role] { type Raw = String }
-end CustomTypes
-
 case class MyData[@@[_, _ <: Tuple]](
-                                      id: Long @@ EmptyTuple,
-                                      name: Option[String] @@ (Upd *: Init *: EmptyTuple),
-                                      updated: Instant @@ (UpdReq *: EmptyTuple),
-                                      roles: Vector[Role] @@ (Init *: UpdCol *: Unchecked *: EmptyTuple),
-                                      phone: Phone @@ (Init *: Upd *: Unchecked *: EmptyTuple)
-                                    )
+  id: Long @@ EmptyTuple,
+  name: Option[String] @@ (Upd *: Init *: EmptyTuple),
+  updated: Instant @@ (UpdReq *: EmptyTuple),
+  roles: Vector[Role] @@ (Init *: UpdCol *: Unchecked *: EmptyTuple),
+  phone: Phone @@ (Init *: Upd *: Unchecked *: EmptyTuple)
+)
 
 object MyData extends HKDCrudCompanion[MyData]
 
@@ -78,4 +65,16 @@ val updUData = new MyData.RawUpdate(
   ),
   Set(Raw[Phone]("zopa"))
 )
+
+object CustomTypes:
+  opaque type Phone = String
+  object Phone:
+    def unsafeApply(str: String): Phone = str
+    implicit val valid: Validatable.Aux[Phone, String] = new Validatable[Phone] { type Raw = String }
+
+  opaque type Role = String
+  object Role:
+    def unsafeApply(str: String): Role = str
+    implicit val valid: Validatable.Aux[Role, String] = new Validatable[Role] { type Raw = String }
+end CustomTypes
 ```
