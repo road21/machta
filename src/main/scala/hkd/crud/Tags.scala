@@ -1,9 +1,8 @@
 package hkd.crud
 
-import hkd.core.{@@, DropTags}
-
 object Tags:
-  trait Init
-  trait Upd
-  trait UpdReq
-  trait UpdCol
+  final class Init
+  final class Upd
+  final class UpdReq
+  final class UpdCol
+  final class Unchecked
