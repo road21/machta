@@ -45,9 +45,9 @@ end CustomTypes
 case class MyData[@@[_, _ <: Tuple]](
   id: Long @@ EmptyTuple,
   name: Option[String] @@ (Upd, Init),
-  updated: Instant @@ (UpdReq, EmptyTuple),
+  updated: Instant @@ (UpdReq *: EmptyTuple),
   roles: Vector[Role] @@ (Init, UpdCol, Unchecked),
-  phone: Phone @@ (Init, Upd, Unchecked, EmptyTuple)
+  phone: Phone @@ (Init, Upd, Unchecked)
 )
 
 object MyData extends HKDCrudCompanion[MyData]

@@ -8,6 +8,8 @@ lazy val root = project
 
     scalaVersion := scala3Version,
 
-    libraryDependencies += "org.typelevel" %% "cats-core" % "2.6.1",
-    libraryDependencies += "com.novocode" % "junit-interface" % "0.11" % "test"
+    libraryDependencies ++= Seq(
+      "org.typelevel" %% "cats-core" % "2.6.1",
+      "com.novocode" % "junit-interface" % "0.11" % "test"
+    )
   )
