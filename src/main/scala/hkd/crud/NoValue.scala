@@ -2,6 +2,5 @@ package hkd.crud
 
 final class NoValue
 
-object NoValue {
+object NoValue:
   def noValue: NoValue = NoValue()
-}

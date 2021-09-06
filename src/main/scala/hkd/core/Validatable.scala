@@ -1,10 +1,20 @@
 package hkd.core
 
-trait Validatable[Valid]:
+import cats.{Applicative, Traverse}
+import cats.syntax.traverse._
+import cats.syntax.applicative._
+
+trait Validatable[F[_], Valid]:
   type Raw
 
-object Validatable:
-  type Aux[V, R] = Validatable[V] { type Raw = R }
+  def validate(r: Raw): F[Valid]
 
-  implicit def validCollection[F[_], E, R](implicit C: Collection.Aux[F[E], E], V: Validatable.Aux[E, R]): Validatable.Aux[F[E], F[R]] =
-    new Validatable[F[E]] { type Raw = F[R] }
+object Validatable:
+  type Aux[f[_], V, R] = Validatable[f, V] { type Raw = R }
+
+  implicit def validTraverse[F[_]: Applicative, C[_]: Traverse, E, R](implicit V: Validatable.Aux[F, E, R]): Validatable.Aux[F, C[E], C[R]] =
+    new Validatable[F, C[E]] {
+      type Raw = C[R]
+
+      def validate(r: Raw): F[C[E]] = r.traverse(V.validate)
+    }

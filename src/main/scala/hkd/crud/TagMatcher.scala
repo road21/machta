@@ -17,10 +17,11 @@ object TagMatcher:
     case (_ *: tail) => UpdM[X, tail]
     case EmptyTuple => NoValue
 
-  type Unch[X, Base, T <: Tuple, F[_, _ <: Tuple]] = T match
+  type UnchAcc[X, Base <: Tuple, T <: Tuple, F[_, _ <: Tuple]] = T match
     case (Unchecked *: _) => F[Raw[X], Base]
-    case (_ *: tail) => Unch[X, Base, tail, F]
+    case (_ *: tail) => UnchAcc[X, Base, tail, F]
     case EmptyTuple => F[X, Base]
 
-  type InitUM[X, T <: Tuple] = Unch[X, T, T, InitM]
-  type UpdUM[X, T <: Tuple] = Unch[X, T, T, UpdM]
+  type Unch[F[_, _ <: Tuple]] = [X, T <: Tuple] =>> UnchAcc[X, T, T, F]
+  type InitUM[X, T <: Tuple] = Unch[InitM][X, T]
+  type UpdUM[X, T <: Tuple] = Unch[UpdM][X, T]

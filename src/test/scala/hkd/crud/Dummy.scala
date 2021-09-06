@@ -6,19 +6,40 @@ import hkd.crud.UpdateField.{Ignore, Set}
 import hkd.crud.NoValue.noValue
 import CustomTypes.{Phone, Role}
 import org.junit.Test
-
+import cats.{Applicative, Traverse, Monad}
+import cats.data.EitherT
+import cats.syntax.applicative._
 import java.time.Instant
+
+trait ValidationService[F[_]] {
+  def phone(raw: String): F[Either[String, Phone]]
+  def role(raw: String): F[Either[String, Role]]
+}
+
+type EitherTC[F[_]] = [x] =>> EitherT[F, String, x]
 
 object CustomTypes:
   opaque type Phone = String
   object Phone:
     def unsafeApply(str: String): Phone = str
-    implicit val valid: Validatable.Aux[Phone, String] = new Validatable[Phone] { type Raw = String }
+    implicit def valid[F[_]: ValidationService]: Validatable.Aux[EitherTC[F], Phone, String] =
+      new Validatable[EitherTC[F], Phone] {
+        type Raw = String
+
+        def validate(r: Raw): EitherT[F, String, Phone] =
+          EitherT(summon[ValidationService[F]].phone(r))
+      }
 
   opaque type Role = String
   object Role:
     def unsafeApply(str: String): Role = str
-    implicit val valid: Validatable.Aux[Role, String] = new Validatable[Role] { type Raw = String }
+    implicit def valid[F[_]: ValidationService]: Validatable.Aux[EitherTC[F], Role, String] =
+      new Validatable[EitherTC[F], Role] {
+        type Raw = String
+
+        def validate(r: Raw): EitherT[F, String, Role] =
+          EitherT(summon[ValidationService[F]].role(r))
+      }
 end CustomTypes
 
 case class MyData[@@[_, _ <: Tuple]](
@@ -31,7 +52,11 @@ case class MyData[@@[_, _ <: Tuple]](
 
 object MyData extends HKDCrudCompanion[MyData]
 
-class Dummy:
+class App[F[_]: Monad]:
+  given validationSvc: ValidationService[F] with
+    def phone(raw: String): F[Either[String, Phone]] = Right(Phone.unsafeApply(raw)).pure[F]
+    def role(raw: String): F[Either[String, Role]] = Right(Role.unsafeApply(raw)).pure[F]
+
   val readData = new MyData.Read(
     1,
     Some("zopa"),
@@ -52,7 +77,7 @@ class Dummy:
     noValue,
     Some("zopa"),
     noValue,
-    Raw[Vector[Role]](Vector("1")),
+    Raw[Vector[Role]][EitherTC[F]](Vector("1")),
     Raw[Phone]("+7916")
   )
 
@@ -76,4 +101,7 @@ class Dummy:
     Set(Raw[Phone]("zopa"))
   )
 
-  @Test def t1(): Unit = ()
+
+object Dummy:
+  import cats.catsInstancesForId
+  @Test def t1(): Unit = new App[[x] =>> x]

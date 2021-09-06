@@ -33,24 +33,21 @@ end UpdateCollection
 
 trait Raw[Valid]:
   type R
+  type F[_]
 
-  given valid: Validatable.Aux[Valid, R]
+  given valid: Validatable.Aux[F, Valid, R]
   def value: R
 end Raw
 
 object Raw:
-  def apply[V] = (valid: Validatable[V]) ?=> new UncheckedFieldApply[V, valid.Raw]
-
-  final class UncheckedFieldApply[V, U](private val dummy: Boolean = true) extends AnyVal:
-    def apply(v: U)(using C: core.Validatable.Aux[V, U]): Raw[V] =
-      new Raw[V] {
-        type R = U
-        given valid: Validatable.Aux[V, R] = summon
-        val value = v
-      }
-
-  implicit def collection[C, E, R](implicit C: Collection.Aux[C, E], V: Validatable.Aux[E, R]): Collection.Aux[Raw[C], R] =
-    new Collection[Raw[C]] {
-      type E = R
+  def apply[V] = [f[_]] => (vld: Validatable[f, V]) ?=> (v: vld.Raw) =>
+    new Raw[V] {
+      type R = vld.Raw
+      type F[x] = f[x]
+      given valid: Validatable.Aux[F, V, R] = summon
+      val value = v
     }
+
+  implicit def collection[F[_], C, E, R](implicit C: Collection.Aux[C, E], V: Validatable.Aux[F, E, R]): Collection.Aux[Raw[C], R] =
+    new Collection[Raw[C]] { type E = R }
 end Raw
