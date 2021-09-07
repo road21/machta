@@ -42,10 +42,10 @@ object CustomTypes:
       }
 end CustomTypes
 
-case class MyData[@@[_, _ <: Tuple]](
+case class MyData[@@[_, _]](
   id: Long @@ EmptyTuple,
   name: Option[String] @@ (Upd, Init),
-  updated: Instant @@ (UpdReq *: EmptyTuple),
+  updated: Instant @@ UpdReq,
   roles: Vector[Role] @@ (Init, UpdCol, Unchecked),
   phone: Phone @@ (Init, Upd, Unchecked)
 )
@@ -102,6 +102,6 @@ class App[F[_]: Monad]:
   )
 
 
-object Dummy:
+class Dummy:
   import cats.catsInstancesForId
   @Test def t1(): Unit = new App[[x] =>> x]

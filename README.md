@@ -7,10 +7,10 @@ import hkd.crud.Tags.{Init, Unchecked, Upd, UpdCol, UpdReq}
 import YourCustomTypes.{Phone, Role}
 import java.time.Instant
 
-case class MyData[@@[_, _ <: Tuple]](
+case class MyData[@@[_, _]](
   id: Long @@ EmptyTuple,
   name: Option[String] @@ (Upd, Init),
-  updated: Instant @@ (UpdReq, EmptyTuple),
+  updated: Instant @@ UpdReq,
   roles: Vector[Role] @@ (Init, UpdCol, Unchecked),
   phone: Phone @@ (Init, Upd, Unchecked)
 )

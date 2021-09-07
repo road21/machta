@@ -1,8 +1,10 @@
 package hkd.crud
 
-trait HKDCrudCompanion[H[f[_, _ <: Tuple]]]:
-  type Create = H[TagMatcher.InitM]
-  type RawCreate = H[TagMatcher.InitUM]
-  type Read = H[TagMatcher.ReadM]
-  type Update = H[TagMatcher.UpdM]
-  type RawUpdate = H[TagMatcher.UpdUM]
+import TagMatcher._
+
+trait HKDCrudCompanion[H[f[_, _]]]:
+  type Create = H[TupleWrapper[InitM]]
+  type RawCreate = H[TupleWrapper[InitUM]]
+  type Read = H[TupleWrapper[ReadM]]
+  type Update = H[TupleWrapper[UpdM]]
+  type RawUpdate = H[TupleWrapper[UpdUM]]

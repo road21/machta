@@ -3,6 +3,10 @@ package hkd.crud
 import Tags.{Init, Unchecked, Upd, UpdCol, UpdReq}
 
 object TagMatcher:
+  type TupleWrapper[F[_, _ <: Tuple]] = [X, T] =>> T match
+    case Tuple => F[X, T]
+    case _ => F[X, Tuple1[T]]
+
   type InitM[X, T <: Tuple] = T match
     case (Init *: _) => X
     case (_ *: tail) => InitM[X, tail]
