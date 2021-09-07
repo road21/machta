@@ -1,15 +1,17 @@
 package hkd.crud
 
 import hkd.core.{Collection, Validatable}
-import hkd.crud.Tags.{Init, Unchecked, Upd, UpdCol, UpdReq}
+import hkd.crud.Tags.{Init, Unchecked, Upd, UpdCol, UpdReq, EmptyTag}
 import hkd.crud.UpdateField.{Ignore, Set}
 import hkd.crud.NoValue.noValue
 import CustomTypes.{Phone, Role}
 import org.junit.Test
 import cats.{Applicative, Traverse, Monad}
 import cats.data.EitherT
-import cats.syntax.applicative._
+import cats.syntax.applicative.*
 import java.time.Instant
+import TagMatcher.InitM
+import cats.syntax.functor.*
 
 trait ValidationService[F[_]] {
   def phone(raw: String): F[Either[String, Phone]]
@@ -43,16 +45,24 @@ object CustomTypes:
 end CustomTypes
 
 case class MyData[@@[_, _]](
-  id: Long @@ EmptyTuple,
-  name: Option[String] @@ (Upd, Init),
+  id: Long @@ EmptyTag,
+  name: Option[String] @@ (Upd | Init),
   updated: Instant @@ UpdReq,
-  roles: Vector[Role] @@ (Init, UpdCol, Unchecked),
-  phone: Phone @@ (Init, Upd, Unchecked)
+  roles: Vector[Role] @@ (Init | UpdCol | Unchecked),
+  phone: Phone @@ (Init | Upd | Unchecked)
 )
 
 object MyData extends HKDCrudCompanion[MyData]
 
 class App[F[_]: Monad]:
+  val x: InitM[Int, Init] = 10
+
+  def zoo[S: ValueOf]: String = "zopa"
+
+  zoo[Init]
+
+  println(TagMatcher.initMFunctor[Init].map[Int, Int](x)(_ + 1))
+
   given validationSvc: ValidationService[F] with
     def phone(raw: String): F[Either[String, Phone]] = Right(Phone.unsafeApply(raw)).pure[F]
     def role(raw: String): F[Either[String, Role]] = Right(Role.unsafeApply(raw)).pure[F]

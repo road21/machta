@@ -1,31 +1,40 @@
 package hkd.crud
 
 import Tags.{Init, Unchecked, Upd, UpdCol, UpdReq}
+import cats.Functor
+
+final case class Inv[T](t: T)
+
+trait IsTag[x]:
+  def tags: x
+
+object IsTag:
+  given tag[T](using v: ValueOf[T]): IsTag[T] with
+    def tags: T = v.value
 
 object TagMatcher:
-  type TupleWrapper[F[_, _ <: Tuple]] = [X, T] =>> T match
-    case Tuple => F[X, T]
-    case _ => F[X, Tuple1[T]]
+  type InitM[X, T] = Inv[T] match
+    case Inv[_ >: Init] => X
+    case Inv[_] => NoValue
 
-  type InitM[X, T <: Tuple] = T match
-    case (Init *: _) => X
-    case (_ *: tail) => InitM[X, tail]
-    case EmptyTuple => NoValue
+  type ReadM[X, T] = X
 
-  type ReadM[X, T <: Tuple] = X
+  type UpdM[X, T] = Inv[T] match
+    case Inv[_ >: UpdReq] => X
+    case Inv[_ >: UpdCol] => UpdateCollection[X]
+    case Inv[_ >: Upd] => UpdateField[X]
+    case Inv[_] => NoValue
 
-  type UpdM[X, T <: Tuple] = T match
-    case (UpdReq *: _) => X
-    case (UpdCol *: _) => UpdateCollection[X]
-    case (Upd *: _) => UpdateField[X]
-    case (_ *: tail) => UpdM[X, tail]
-    case EmptyTuple => NoValue
+  type Unch[F[_, _]] = [X, T] =>> Inv[T] match
+    case Inv[_ >: Unchecked] => F[Raw[X], T]
+    case Inv[_] => F[X, T]
 
-  type UnchAcc[X, Base <: Tuple, T <: Tuple, F[_, _ <: Tuple]] = T match
-    case (Unchecked *: _) => F[Raw[X], Base]
-    case (_ *: tail) => UnchAcc[X, Base, tail, F]
-    case EmptyTuple => F[X, Base]
+  type InitUM[X, T] = Unch[InitM][X, T]
+  type UpdUM[X, T] = Unch[UpdM][X, T]
 
-  type Unch[F[_, _ <: Tuple]] = [X, T <: Tuple] =>> UnchAcc[X, T, T, F]
-  type InitUM[X, T <: Tuple] = Unch[InitM][X, T]
-  type UpdUM[X, T <: Tuple] = Unch[UpdM][X, T]
+  def initMFunctor[T](using t: IsTag[T]): Functor[[x] =>> InitM[x, T]] = new Functor[[x] =>> InitM[x, T]] {
+    def map[A, B](fa: InitM[A, T])(f: A => B): InitM[B, T] =
+      Inv[T](t.tags) match
+        case Inv(Init) => f(fa.asInstanceOf[A]).asInstanceOf[InitM[B, T]]
+        case _ => NoValue.noValue.asInstanceOf[InitM[B, T]]
+  }

@@ -1,8 +1,20 @@
 package hkd.crud
 
 object Tags:
-  final class Init
-  final class Upd
-  final class UpdReq
-  final class UpdCol
-  final class Unchecked
+  type Init = Init.type
+  object Init
+
+  type Upd = Upd.type
+  object Upd
+
+  type UpdReq = UpdReq.type
+  object UpdReq
+
+  type UpdCol = UpdCol.type
+  object UpdCol
+
+  type Unchecked = Unchecked.type
+  object Unchecked
+
+  type EmptyTag = EmptyTag.type
+  object EmptyTag
