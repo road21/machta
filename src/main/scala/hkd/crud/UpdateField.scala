@@ -31,23 +31,22 @@ object UpdateCollection:
       }
 end UpdateCollection
 
-trait Raw[Valid]:
+trait Raw[F[_], Valid]:
   type R
-  type F[_]
 
   given valid: Validatable.Aux[F, Valid, R]
   def value: R
+  def validate: F[Valid] = valid.validate(value)
 end Raw
 
 object Raw:
-  def apply[V] = [f[_]] => (vld: Validatable[f, V]) ?=> (v: vld.Raw) =>
-    new Raw[V] {
+  def apply[V] = [F[_]] => (vld: Validatable[F, V]) ?=> (v: vld.Raw) =>
+    new Raw[F, V] {
       type R = vld.Raw
-      type F[x] = f[x]
       given valid: Validatable.Aux[F, V, R] = summon
       val value = v
     }
 
-  implicit def collection[F[_], C, E, R](implicit C: Collection.Aux[C, E], V: Validatable.Aux[F, E, R]): Collection.Aux[Raw[C], R] =
-    new Collection[Raw[C]] { type E = R }
+  implicit def collection[F[_], C, E, R](implicit C: Collection.Aux[C, E], V: Validatable.Aux[F, E, R]): Collection.Aux[Raw[F, C], R] =
+    new Collection[Raw[F, C]] { type E = R }
 end Raw

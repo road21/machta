@@ -6,10 +6,12 @@ import hkd.crud.UpdateField.{Ignore, Set}
 import hkd.crud.NoValue.noValue
 import CustomTypes.{Phone, Role}
 import org.junit.Test
-import cats.{Applicative, Traverse, Monad}
+import cats.{Applicative, Monad, Traverse}
 import cats.data.EitherT
-import cats.syntax.applicative._
+import cats.syntax.applicative.*
+import hkd.crud.TagMatcher.{InitM, Unch, ContainsUnch}
 import java.time.Instant
+import cats.syntax.functor.*
 
 trait ValidationService[F[_]] {
   def phone(raw: String): F[Either[String, Phone]]
@@ -73,7 +75,7 @@ class App[F[_]: Monad]:
     Phone.unsafeApply("+7991")
   )
 
-  val initUData = new MyData.RawCreate(
+  val initUData = new MyData.RawCreate[EitherTC[F]](
     noValue,
     Some("zopa"),
     noValue,
@@ -91,16 +93,15 @@ class App[F[_]: Monad]:
     Set(Phone.unsafeApply("+1"))
   )
 
-  val updUData = new MyData.RawUpdate(
+  val updUData = new MyData.RawUpdate[EitherTC[F]](
     noValue,
     Set(Some("zopa")),
     Instant.now,
-    UpdateCollection[Raw[Vector[Role]]](
+    UpdateCollection[Raw[EitherTC[F], Vector[Role]]](
       add = Vector("2", "3"), delete = Vector("1")
     ),
     Set(Raw[Phone]("zopa"))
   )
-
 
 class Dummy:
   import cats.catsInstancesForId
