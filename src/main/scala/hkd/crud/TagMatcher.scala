@@ -7,11 +7,11 @@ import cats.syntax.applicative._
 trait Matcher[U[_, _]]:
   def traverse[T]: Traverse[[x] =>> U[x, T]]
 
-trait BiNat[A[_, _], B[_, _]]:
-  def apply[X, T]: A[X, T] => B[X, T]
+trait MatcherTrans[A[_, _], B[_, _]]:
+  def apply[X, T]: IsTag[T] ?=> A[X, T] => B[X, T]
 
 trait Data[H[U[_, _]]]:
-  def innerTraverse[T, A[_, _]: Matcher, B[_, _], F[_]: Applicative](ha: H[A])(x: BiNat[A, [x, t] =>> F[B[x, t]]])(using T: IsTag[T]): H[B]
+  def innerTraverse[A[_, _], B[_, _], F[_]: Applicative](ha: H[A])(x: MatcherTrans[A, [x, t] =>> F[B[x, t]]]): F[H[B]]
 
 object TagMatcher:
   type WrapTup[T] <: Tuple = T match
@@ -103,4 +103,3 @@ object TagMatcher:
       def foldLeft[A, B](fa: InitM[A, Ts], b: B)(f: (B, A) => B): B = ???
       def foldRight[A, B](fa: InitM[A, Ts], lb: cats.Eval[B])(f: (A, cats.Eval[B]) => cats.Eval[B]): cats.Eval[B] = ???
     }
-

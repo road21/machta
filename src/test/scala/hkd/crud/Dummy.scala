@@ -9,6 +9,7 @@ import org.junit.Test
 import cats.{Applicative, Monad, Traverse}
 import cats.data.EitherT
 import cats.syntax.applicative.*
+import cats.syntax.apply.*
 import hkd.crud.TagMatcher.{InitM, Unch, ContainsUnch}
 import java.time.Instant
 import cats.syntax.functor.*
@@ -52,7 +53,20 @@ case class MyData[@@[_, _]](
   phone: Phone @@ (Init, Upd, Unchecked)
 )
 
-object MyData extends HKDCrudCompanion[MyData]
+object MyData extends HKDCrudCompanion[MyData] {
+  given data: Data[MyData] with
+    def innerTraverse[A[_, _], B[_, _], F[_]: Applicative](ha: MyData[A])(f: MatcherTrans[A, [x, t] =>> F[B[x, t]]]): F[MyData[B]] =
+      Applicative[F]
+      (
+        f[Long, EmptyTuple](ha.id),
+        f[Option[String], (Upd, Init)](ha.name),
+        f[Instant, UpdReq](ha.updated),
+        f[Vector[Role], (Init, UpdCol, Unchecked)](ha.roles),
+        f[Phone, (Init, Upd, Unchecked)](ha.phone)
+      ).mapN((id, name, updated, roles, phone) =>
+        MyData[B](id, name, updated, roles, phone)
+      )
+}
 
 class App[F[_]: Monad]:
   given validationSvc: ValidationService[F] with
@@ -84,7 +98,7 @@ class App[F[_]: Monad]:
     Some("zopa"),
     noValue,
     Raw[Vector[Role]][EitherTC[F]](Vector("1")),
-    Raw[Phone]("+7916")
+    Raw[Phone]("7916")
   )
 
   val updData = new MyData.Update(
@@ -107,10 +121,11 @@ class App[F[_]: Monad]:
     Set(Raw[Phone]("zopa"))
   )
 
+  println(Validate.validate(initUData))
+
   val t: Unch[EitherTC[F], Phone, (Init, Unchecked), InitM] = Raw[Phone]("bla-bla")
   println(summon[Traverse[[x] =>> InitM[x, (Init, Unchecked)]]].map("")(_.isEmpty))
   println(summon[IsTag[(Init, Unchecked)]].value)
-  println(Validate.inner[InitM, EitherTC[F], (Init, Unchecked), Phone](t))
 
 class Dummy:
   import cats.catsInstancesForId
