@@ -56,7 +56,11 @@ object MyData extends HKDCrudCompanion[MyData]
 
 class App[F[_]: Monad]:
   given validationSvc: ValidationService[F] with
-    def phone(raw: String): F[Either[String, Phone]] = Right(Phone.unsafeApply(raw)).pure[F]
+    def phone(raw: String): F[Either[String, Phone]] = {
+      if(raw.forall(_.isDigit)) Right(Phone.unsafeApply(raw))
+      else Left("Phone must contain only digits")
+    }.pure[F]
+
     def role(raw: String): F[Either[String, Role]] = Right(Role.unsafeApply(raw)).pure[F]
 
   val readData = new MyData.Read(
@@ -102,6 +106,11 @@ class App[F[_]: Monad]:
     ),
     Set(Raw[Phone]("zopa"))
   )
+
+  val t: Unch[EitherTC[F], Phone, (Init, Unchecked), InitM] = Raw[Phone]("bla-bla")
+  println(summon[Traverse[[x] =>> InitM[x, (Init, Unchecked)]]].map("")(_.isEmpty))
+  println(summon[IsTag[(Init, Unchecked)]].value)
+  println(Validate.inner[InitM, EitherTC[F], (Init, Unchecked), Phone](t))
 
 class Dummy:
   import cats.catsInstancesForId
