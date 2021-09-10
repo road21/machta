@@ -1,6 +1,6 @@
 package hkd.crud
 
-import hkd.core.{Collection, Validatable}
+import hkd.core.Validatable
 import hkd.crud.Tags.{Init, Unchecked, Upd, UpdCol, UpdReq}
 import hkd.crud.UpdateField.{Ignore, Set}
 import hkd.crud.NoValue.noValue
@@ -11,6 +11,7 @@ import cats.data.EitherT
 import cats.syntax.applicative.*
 import cats.syntax.apply.*
 import hkd.crud.TagMatcher.{InitM, Unch, ContainsUnch}
+import hkd.crud.UpdateTag.UpdM
 import java.time.Instant
 import cats.syntax.functor.*
 
@@ -56,7 +57,6 @@ case class MyData[@@[_, _]](
 object MyData extends HKDCrudCompanion[MyData] {
   given data: Data[MyData] with
     def innerTraverse[A[_, _], B[_, _], F[_]: Applicative](ha: MyData[A])(f: MatcherTrans[A, [x, t] =>> F[B[x, t]]]): F[MyData[B]] =
-      Applicative[F]
       (
         f[Long, EmptyTuple](ha.id),
         f[Option[String], (Upd, Init)](ha.name),
@@ -105,7 +105,7 @@ class App[F[_]: Monad]:
     noValue,
     Ignore,
     Instant.now,
-    UpdateCollection[Vector[Role]](
+    ModifyCol[Vector[Role]](
       add = Vector("2", "3").map(Role.unsafeApply), delete = Vector("1").map(Role.unsafeApply)
     ),
     Set(Phone.unsafeApply("+1"))
@@ -115,17 +115,18 @@ class App[F[_]: Monad]:
     noValue,
     Set(Some("zopa")),
     Instant.now,
-    UpdateCollection[Raw[EitherTC[F], Vector[Role]]](
-      add = Vector("2", "3"), delete = Vector("1")
+    ModifyCol(
+      add = Raw[Vector[Role]][EitherTC[F]](Vector("2", "3")),
+      delete = Raw[Vector[Role]][EitherTC[F]](Vector("1"))
     ),
-    Set(Raw[Phone]("zopa"))
+    Set(Raw[Phone]("123"))
   )
 
-  println(Validate.validate(initUData))
-
-  val t: Unch[EitherTC[F], Phone, (Init, Unchecked), InitM] = Raw[Phone]("bla-bla")
-  println(summon[Traverse[[x] =>> InitM[x, (Init, Unchecked)]]].map("")(_.isEmpty))
-  println(summon[IsTag[(Init, Unchecked)]].value)
+  import hkd.crud.UpdateTag.matcherUpd
+  println(Validate.validate[MyData, InitM, EitherTC[F]](initUData))
+  summon[Matcher[InitM]]
+  summon[Matcher[UpdM]]
+  println(Validate.validate[MyData, UpdM, EitherTC[F]](updUData))
 
 class Dummy:
   import cats.catsInstancesForId

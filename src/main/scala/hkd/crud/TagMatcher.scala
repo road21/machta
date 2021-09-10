@@ -1,8 +1,13 @@
 package hkd.crud
 
 import Tags.{Init, Unchecked, Upd, UpdCol, UpdReq}
-import cats.{Functor, Traverse, Applicative}
-import cats.syntax.applicative._
+import cats.{Applicative, Functor, Traverse}
+import cats.syntax.apply.*
+import cats.syntax.functor.*
+import cats.syntax.applicative.*
+import cats.syntax.traverse.*
+import UpdateTag.UpdM
+import TagMatcher.{WrapTup, UnchC}
 
 trait Matcher[U[_, _]]:
   def traverse[T]: Traverse[[x] =>> U[x, T]]
@@ -68,19 +73,11 @@ object TagMatcher:
       case _: Any => containsUnch[T](t)
     }
 
-  type InitM[X, T] =
-    ContainsInit[WrapTup[T]] match
-      case true => X
-      case false => NoValue
+  type InitM[X, T] = ContainsInit[WrapTup[T]] match
+    case true => X
+    case false => NoValue
 
   type ReadM[X, T] = X
-
-  type UpdM[X, T] = WrapTup[T] match
-    case (UpdReq *: _) => X
-    case (UpdCol *: _) => UpdateCollection[X]
-    case (Upd *: _) => UpdateField[X]
-    case (_ *: tail) => UpdM[X, tail]
-    case EmptyTuple => NoValue
 
   type Unch[F[_], X, T, U[_, _]] =
     ContainsUnch[WrapTup[T]] match
@@ -90,7 +87,6 @@ object TagMatcher:
   type UnchC[F[_], U[_, _]] = [X, T] =>> Unch[F, X, T, U]
 
   type InitUM[F[_]] = [X, T] =>> UnchC[F, InitM][X, T]
-  type UpdUM[F[_]] = [X, T] =>> UnchC[F, UpdM][X, T]
 
   given matcherInit: Matcher[InitM] with
     def traverse[Ts]: Traverse[[x] =>> InitM[x, Ts]] = new Traverse[[x] =>> InitM[x, Ts]] {
@@ -102,4 +98,36 @@ object TagMatcher:
 
       def foldLeft[A, B](fa: InitM[A, Ts], b: B)(f: (B, A) => B): B = ???
       def foldRight[A, B](fa: InitM[A, Ts], lb: cats.Eval[B])(f: (A, cats.Eval[B]) => cats.Eval[B]): cats.Eval[B] = ???
+    }
+
+object UpdateTag:
+  type FindUpdTag[T <: Tuple] <: Option[UpdReq | UpdCol | Upd] = T match
+    case (UpdReq *: _) => Some[UpdReq]
+    case (UpdCol *: _) => Some[UpdCol]
+    case (Upd *: _) => Some[Upd]
+    case (_ *: tail) => FindUpdTag[tail]
+    case EmptyTuple => None.type
+
+  type UpdM[X, T] = FindUpdTag[WrapTup[T]] match
+    case Some[tag] => tag match {
+      case UpdReq => X
+      case UpdCol => ModifyCol[X]
+      case Upd => UpdateField[X]
+    }
+    case None.type => NoValue
+
+  type UpdUM[F[_]] = [X, T] =>> UnchC[F, UpdM][X, T]
+
+  given matcherUpd: Matcher[UpdM] with
+    def traverse[Ts]: Traverse[[x] =>> UpdM[x, Ts]] = new Traverse[[x] =>> UpdM[x, Ts]] {
+      def traverse[G[_]: Applicative, A, B](fa: UpdM[A, Ts])(f: A => G[B]): G[UpdM[B, Ts]] =
+        fa match {
+          case NoValue => fa.asInstanceOf[UpdM[B, Ts]].pure[G]
+          case m: ModifyCol[_] => Traverse[ModifyCol].traverse(m.asInstanceOf[ModifyCol[A]])(f).asInstanceOf[G[UpdM[B, Ts]]]
+          case u: UpdateField[_] => Traverse[UpdateField].traverse(u.asInstanceOf[UpdateField[A]])(f).asInstanceOf[G[UpdM[B, Ts]]]
+          case x => f(x.asInstanceOf[A]).asInstanceOf[G[UpdM[B, Ts]]]
+        }
+
+      def foldLeft[A, B](fa: UpdM[A, Ts], b: B)(f: (B, A) => B): B = ???
+      def foldRight[A, B](fa: UpdM[A, Ts], lb: cats.Eval[B])(f: (A, cats.Eval[B]) => cats.Eval[B]): cats.Eval[B] = ???
     }
