@@ -1,8 +1,7 @@
-package hkd.core
+package machta
 
 import cats.{Applicative, Traverse}
-import cats.syntax.traverse._
-import cats.syntax.applicative._
+import cats.syntax.traverse.*
 
 trait Validatable[F[_], Valid]:
   type Raw

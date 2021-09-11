@@ -1,19 +1,15 @@
-package hkd.crud
+package machta
 
-import hkd.core.Validatable
-import hkd.crud.Tags.{Init, Unchecked, Upd, UpdCol, UpdReq}
-import hkd.crud.UpdateField.{Ignore, Set}
-import hkd.crud.NoValue.noValue
-import CustomTypes.{Phone, Role}
-import org.junit.Test
-import cats.{Applicative, Monad, Traverse}
 import cats.data.EitherT
 import cats.syntax.applicative.*
 import cats.syntax.apply.*
-import hkd.crud.TagMatcher.{InitM, Unch, ContainsUnch}
-import hkd.crud.UpdateTag.UpdM
-import java.time.Instant
 import cats.syntax.functor.*
+import cats.{Applicative, Monad, Traverse}
+import org.junit.Test
+import CustomTypes.{Phone, Role}
+import java.time.Instant
+import NoValue.noValue
+import UpdateField.{Set, Ignore}
 
 trait ValidationService[F[_]] {
   def phone(raw: String): F[Either[String, Phone]]
@@ -46,7 +42,7 @@ object CustomTypes:
       }
 end CustomTypes
 
-case class MyData[@@[_, _]](
+case class User[@@[_, _]](
   id: Long @@ EmptyTuple,
   name: Option[String] @@ (Upd, Init),
   updated: Instant @@ UpdReq,
@@ -54,9 +50,9 @@ case class MyData[@@[_, _]](
   phone: Phone @@ (Init, Upd, Unchecked)
 )
 
-object MyData extends HKDCrudCompanion[MyData] {
-  given data: Data[MyData] with
-    def innerTraverse[A[_, _], B[_, _], F[_]: Applicative](ha: MyData[A])(f: MatcherTrans[A, [x, t] =>> F[B[x, t]]]): F[MyData[B]] =
+object User extends DataCompanion[User] {
+  given data: Data[User] with
+    def innerTraverse[A[_, _], B[_, _], F[_]: Applicative](ha: User[A])(f: MatcherTrans[A, [x, t] =>> F[B[x, t]]]): F[User[B]] =
       (
         f[Long, EmptyTuple](ha.id),
         f[Option[String], (Upd, Init)](ha.name),
@@ -64,7 +60,7 @@ object MyData extends HKDCrudCompanion[MyData] {
         f[Vector[Role], (Init, UpdCol, Unchecked)](ha.roles),
         f[Phone, (Init, Upd, Unchecked)](ha.phone)
       ).mapN((id, name, updated, roles, phone) =>
-        MyData[B](id, name, updated, roles, phone)
+        User[B](id, name, updated, roles, phone)
       )
 }
 
@@ -77,7 +73,7 @@ class App[F[_]: Monad]:
 
     def role(raw: String): F[Either[String, Role]] = Right(Role.unsafeApply(raw)).pure[F]
 
-  val readData = new MyData.Read(
+  val readData = new User.Read(
     1,
     Some("zopa"),
     Instant.now(),
@@ -85,7 +81,7 @@ class App[F[_]: Monad]:
     Phone.unsafeApply("+7991")
   )
 
-  val initData = new MyData.Create(
+  val initData = new User.Create(
     noValue,
     Some("zopa"),
     noValue,
@@ -93,7 +89,7 @@ class App[F[_]: Monad]:
     Phone.unsafeApply("+7991")
   )
 
-  val initUData = new MyData.RawCreate[EitherTC[F]](
+  val initUData = new User.RawCreate[EitherTC[F]](
     noValue,
     Some("zopa"),
     noValue,
@@ -101,32 +97,29 @@ class App[F[_]: Monad]:
     Raw[Phone]("7916")
   )
 
-  val updData = new MyData.Update(
+  val updData = new User.Update(
     noValue,
     Ignore,
     Instant.now,
-    ModifyCol[Vector[Role]](
+    UpdateCol[Vector[Role]](
       add = Vector("2", "3").map(Role.unsafeApply), delete = Vector("1").map(Role.unsafeApply)
     ),
     Set(Phone.unsafeApply("+1"))
   )
 
-  val updUData = new MyData.RawUpdate[EitherTC[F]](
+  val updUData = new User.RawUpdate[EitherTC[F]](
     noValue,
     Set(Some("zopa")),
     Instant.now,
-    ModifyCol(
+    UpdateCol(
       add = Raw[Vector[Role]][EitherTC[F]](Vector("2", "3")),
       delete = Raw[Vector[Role]][EitherTC[F]](Vector("1"))
     ),
     Set(Raw[Phone]("123"))
   )
 
-  import hkd.crud.UpdateTag.matcherUpd
-  println(Validate.validate[MyData, InitM, EitherTC[F]](initUData))
-  summon[Matcher[InitM]]
-  summon[Matcher[UpdM]]
-  println(Validate.validate[MyData, UpdM, EitherTC[F]](updUData))
+  println(initUData.validate)
+  println(updUData.validate)
 
 class Dummy:
   import cats.catsInstancesForId

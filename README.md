@@ -1,19 +1,20 @@
-## Hkd Crud  
+## Machta
 
 ### Idea
 Tag your hkd data class fields:
+
 ```scala
-import hkd.crud.Tags.{Init, Unchecked, Upd, UpdCol, UpdReq}
+import machta.{Init, Unchecked, Upd, UpdCol, UpdReq}
 import YourCustomTypes.{Phone, Role}
 import java.time.Instant
 
 case class MyData[@@[_, _]](
-  id: Long @@ EmptyTuple,
-  name: Option[String] @@ (Upd, Init),
-  updated: Instant @@ UpdReq,
-  roles: Vector[Role] @@ (Init, UpdCol, Unchecked),
-  phone: Phone @@ (Init, Upd, Unchecked)
-)
+                             id: Long @@ EmptyTuple,
+                             name: Option[String] @@ (Upd, Init),
+                             updated: Instant @@ UpdReq,
+                             roles: Vector[Role] @@ (Init, UpdCol, Unchecked),
+                             phone: Phone @@ (Init, Upd, Unchecked)
+                           )
 
 object MyData extends HKDCrudCompanion[MyData]
 ```
@@ -28,4 +29,3 @@ For example, types `Phone` and `Role` both have raw type `String`, then raw data
 MyData.RawCreate ~= (name: Option[String], roles: Vector[String], phone: String)
 MyData.RawUpdate ~= (name: Option[Option[String]], updated: Instant, roles: (add: Vector[String], delete: Vector[String]), phone: Option[String])
 ```
-WIP: autogen transformations from raw form to validated
