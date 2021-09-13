@@ -1,10 +1,11 @@
 package machta
 
-import cats.data.EitherT
+import cats.data.{ValidatedNel, Validated, NonEmptyList}
 import cats.syntax.applicative.*
 import cats.syntax.apply.*
 import cats.syntax.functor.*
-import cats.{Applicative, Monad, Traverse}
+import cats.syntax.either.*
+import cats.{Functor, Applicative, Monad, Traverse, Semigroup}
 import org.junit.Test
 import CustomTypes.{Phone, Role}
 import java.time.Instant
@@ -16,29 +17,24 @@ trait ValidationService[F[_]] {
   def role(raw: String): F[Either[String, Role]]
 }
 
-type EitherTC[F[_]] = [x] =>> EitherT[F, String, x]
-
 object CustomTypes:
   opaque type Phone = String
   object Phone:
     def unsafeApply(str: String): Phone = str
-    implicit def valid[F[_]: ValidationService]: Validatable.Aux[EitherTC[F], Phone, String] =
-      new Validatable[EitherTC[F], Phone] {
+    implicit def valid[F[_]: Functor](using v: ValidationService[F]): Validatable.Aux[ValidatedST[F], Phone, String] =
+      new Validatable[ValidatedST[F], Phone] {
         type Raw = String
-
-        def validate(r: Raw): EitherT[F, String, Phone] =
-          EitherT(summon[ValidationService[F]].phone(r))
+        def validate(r: Raw): F[ValidatedNel[String, Phone]] = v.phone(r).map(_.toValidatedNel)
       }
 
   opaque type Role = String
   object Role:
     def unsafeApply(str: String): Role = str
-    implicit def valid[F[_]: ValidationService]: Validatable.Aux[EitherTC[F], Role, String] =
-      new Validatable[EitherTC[F], Role] {
+    implicit def valid[F[_]: Functor](using v: ValidationService[F]): Validatable.Aux[ValidatedST[F], Role, String] =
+      new Validatable[ValidatedST[F], Role] {
         type Raw = String
 
-        def validate(r: Raw): EitherT[F, String, Role] =
-          EitherT(summon[ValidationService[F]].role(r))
+        def validate(r: Raw): F[ValidatedNel[String, Role]] = v.role(r).map(_.toValidatedNel)
       }
 end CustomTypes
 
@@ -64,14 +60,17 @@ object User extends DataCompanion[User] {
       )
 }
 
-class App[F[_]: Monad]:
+class App[F[_]: Applicative]:
   given validationSvc: ValidationService[F] with
     def phone(raw: String): F[Either[String, Phone]] = {
       if(raw.forall(_.isDigit)) Right(Phone.unsafeApply(raw))
       else Left("Phone must contain only digits")
     }.pure[F]
 
-    def role(raw: String): F[Either[String, Role]] = Right(Role.unsafeApply(raw)).pure[F]
+    def role(raw: String): F[Either[String, Role]] = {
+      if(raw.forall(_.isLetter)) Right(Role.unsafeApply(raw))
+      else Left(s"Role must contain only digits, illegal role $raw")
+    }.pure[F]
 
   val readData = new User.Read(
     1,
@@ -89,11 +88,11 @@ class App[F[_]: Monad]:
     Phone.unsafeApply("+7991")
   )
 
-  val initUData = new User.RawCreate[EitherTC[F]](
+  val initUData = new User.RawCreate[ValidatedST[F]](
     noValue,
     Some("zopa"),
     noValue,
-    Raw[Vector[Role]][EitherTC[F]](Vector("1")),
+    Raw[Vector[Role]][ValidatedST[F]](Vector("1")),
     Raw[Phone]("7916")
   )
 
@@ -107,13 +106,13 @@ class App[F[_]: Monad]:
     Set(Phone.unsafeApply("+1"))
   )
 
-  val updUData = new User.RawUpdate[EitherTC[F]](
+  val updUData = new User.RawUpdate[ValidatedST[F]](
     noValue,
     Set(Some("zopa")),
     Instant.now,
     UpdateCol(
-      add = Raw[Vector[Role]][EitherTC[F]](Vector("2", "3")),
-      delete = Raw[Vector[Role]][EitherTC[F]](Vector("1"))
+      add = Raw[Vector[Role]][ValidatedST[F]](Vector("2", "3")),
+      delete = Raw[Vector[Role]][ValidatedST[F]](Vector("1"))
     ),
     Set(Raw[Phone]("123"))
   )
