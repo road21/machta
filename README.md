@@ -21,12 +21,15 @@ object User extends Data[MyData]
 ```
 Then you get data types for reading, creating (tag `Init`) and updating (tags with prefix `Upd`) data:
 ```
-MyData.Read ~= (id: Long, name: Option[String], updated: Instant, roles: Vector[Role], phone: Phone)
-MyData.Create ~= (name: Option[String], roles: Vector[Role], phone: Phone)
-MyData.Update ~= (name: Option[Option[String]], updated: Instant, roles: (add: Vector[Role], delete: Vector[Role]), phone: Option[Phone])
+User.Read ~= (id: Long, name: Option[String], updated: Instant, roles: Vector[Role], phone: Phone)
+User.Create ~= (name: Option[String], roles: Vector[Role], phone: Phone)
+User.Update ~= (name: Option[Option[String]], updated: Instant, roles: (add: Vector[Role], delete: Vector[Role]), phone: Option[Phone])
 ```
 For example, types `Phone` and `Role` both have raw type `String`, then raw data (tag `Unchecked`) for creating and updating:
 ```
-MyData.RawCreate ~= (name: Option[String], roles: Vector[String], phone: String)
-MyData.RawUpdate ~= (name: Option[Option[String]], updated: Instant, roles: (add: Vector[String], delete: Vector[String]), phone: Option[String])
+User.RawCreate[F] ~= (name: Option[String], roles: Vector[String], phone: String)
+User.RawUpdate[F] ~= (name: Option[Option[String]], updated: Instant, roles: (add: Vector[String], delete: Vector[String]), phone: Option[String])
+
+val user: User.RawCreate[F] = ...
+u.validate // F[User.Create]
 ```
