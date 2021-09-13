@@ -31,5 +31,5 @@ User.RawCreate[F] ~= (name: Option[String], roles: Vector[String], phone: String
 User.RawUpdate[F] ~= (name: Option[Option[String]], updated: Instant, roles: (add: Vector[String], delete: Vector[String]), phone: Option[String])
 
 val user: User.RawCreate[F] = ...
-u.validate // F[User.Create]
+user.validate // F[User.Create]
 ```
