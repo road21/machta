@@ -4,19 +4,20 @@
 Tag your hkd data class fields:
 
 ```scala
-import machta.{Init, Unchecked, Upd, UpdCol, UpdReq}
+import machta.{Init, Unchecked, Upd, UpdCol, UpdReq, Data}
+import machta.syntax.no
 import YourCustomTypes.{Phone, Role}
 import java.time.Instant
 
-case class MyData[@@[_, _]](
-                             id: Long @@ EmptyTuple,
-                             name: Option[String] @@ (Upd, Init),
-                             updated: Instant @@ UpdReq,
-                             roles: Vector[Role] @@ (Init, UpdCol, Unchecked),
-                             phone: Phone @@ (Init, Upd, Unchecked)
-                           )
+case class User[tags[_, _]](
+  id: Long no tags,
+  name: Option[String] tags (Init, Upd),
+  updated: Instant tags UpdReq,
+  roles: Vector[Role] tags (Init, UpdCol, Unchecked),
+  phone: Phone tags (Init, Upd, Unchecked)
+)
 
-object MyData extends HKDCrudCompanion[MyData]
+object User extends Data[MyData]
 ```
 Then you get data types for reading, creating (tag `Init`) and updating (tags with prefix `Upd`) data:
 ```

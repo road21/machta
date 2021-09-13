@@ -11,6 +11,7 @@ import CustomTypes.{Phone, Role}
 import java.time.Instant
 import NoValue.noValue
 import UpdateField.{Set, Ignore}
+import machta.syntax.no
 
 trait ValidationService[F[_]] {
   def phone(raw: String): F[Either[String, Phone]]
@@ -38,12 +39,12 @@ object CustomTypes:
       }
 end CustomTypes
 
-case class User[@@[_, _]](
-  id: Long @@ EmptyTuple,
-  name: Option[String] @@ (Upd, Init),
-  updated: Instant @@ UpdReq,
-  roles: Vector[Role] @@ (Init, UpdCol, Unchecked),
-  phone: Phone @@ (Init, Upd, Unchecked)
+case class User[tags[_, _]](
+  id: Long no tags,
+  name: Option[String] tags (Upd, Init),
+  updated: Instant tags UpdReq,
+  roles: Vector[Role] tags (Init, UpdCol, Unchecked),
+  phone: Phone tags (Init, Upd, Unchecked)
 )
 
 object User extends DataCompanion[User] {
