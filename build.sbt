@@ -1,15 +1,28 @@
-val scala3Version = "3.0.2"
+val commonSettings = Seq(
+  version := "0.1.0",
+  scalaVersion := Dependencies.Version.scala3,
+  libraryDependencies ++= Seq(Dependencies.scalaTest).map(_ % Test)
+)
 
-lazy val root = project
-  .in(file("."))
+lazy val circe =
+  (project in file("modules/circe"))
+  .settings(commonSettings)
   .settings(
-    name := "machta",
-    version := "0.1.0",
+    name := "machta-circe",
+    libraryDependencies ++= Seq(Dependencies.circeCore)
+  ).dependsOn(core)
 
-    scalaVersion := scala3Version,
-
-    libraryDependencies ++= Seq(
-      "org.typelevel" %% "cats-core" % "2.6.1",
-      "com.novocode" % "junit-interface" % "0.11" % "test"
+lazy val core =
+  (project in file("modules/core"))
+    .settings(commonSettings)
+    .settings(
+      name := "machta-core",
+      libraryDependencies ++= Seq(Dependencies.catsCore)
     )
+
+lazy val machta = project
+  .in(file("."))
+  .aggregate(
+    core,
+    circe
   )
