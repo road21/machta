@@ -9,7 +9,7 @@ lazy val circe =
   .settings(commonSettings)
   .settings(
     name := "machta-circe",
-    libraryDependencies ++= Seq(Dependencies.circeCore)
+    libraryDependencies ++= Seq(Dependencies.circeCore) ++ Seq(Dependencies.circeParser).map(_ % Test)
   ).dependsOn(core)
 
 lazy val core =

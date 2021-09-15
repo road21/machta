@@ -6,15 +6,18 @@ import cats.syntax.applicative.*
 
 /** Update tag  */
 type Upd = Upd.type
-object Upd
+object Upd:
+  given singleTag: SingleTag[Upd] = SingleTag.instance
 
 /** Update required tag */
 type UpdReq = UpdReq.type
-object UpdReq
+object UpdReq:
+  given singleTag: SingleTag[UpdReq] = SingleTag.instance
 
 /** Update collection tag */
 type UpdCol = UpdCol.type
-object UpdCol
+object UpdCol:
+  given singleTag: SingleTag[UpdCol] = SingleTag.instance
 
 /** Update matcher */
 type UpdM[X, T] = FindUpdTag[WrapTuple[T]] match

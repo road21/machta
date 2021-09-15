@@ -10,6 +10,7 @@ object Dependencies {
 
   lazy val catsCore = "org.typelevel" %% "cats-core" % Version.cats
   lazy val circeCore = "io.circe" %% "circe-core" % Version.circe
+  lazy val circeParser = "io.circe" %% "circe-parser" % Version.circe
   lazy val scalaTest = "org.scalatest" %% "scalatest" % Version.scalaTest
 }
 

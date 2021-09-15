@@ -6,7 +6,8 @@ import cats.syntax.applicative.*
 import RawForm.ContainsUnch
 
 type Unchecked = Unchecked.type
-object Unchecked
+object Unchecked:
+  given singleTag: SingleTag[Unchecked] = SingleTag.instance
 
 /** Raw form of matcher U[_, _] */
 type RawForm[F[_], X, T, U[_, _]] =
@@ -41,7 +42,7 @@ object RawForm:
   def validate[H[f[_, _]], U[_, _], F[_]: Applicative](raw: H[RawFormC[F, U]])(using data: Data[H], matcher: Matcher[U]): F[H[U]] =
     data.innerTraverse[RawFormC[F, U], U, F](raw)(
       new MatcherTrans[RawFormC[F, U], [x, t] =>> F[U[x, t]]] {
-        def apply[X, T]: IsTag[T] ?=> RawFormC[F, U][X, T] => F[U[X, T]] = T ?=> u =>
+        def apply[X, T]: Tags[T] ?=> RawFormC[F, U][X, T] => F[U[X, T]] = T ?=> u =>
           containsUnch[WrapTuple[T]](WrapTuple.wrapTuple(T.value)) match {
             case true => matcher.traverse[T].traverse(u.asInstanceOf[U[Raw[F, X], T]])(_.validate)
             case false => matcher.traverse[T].traverse(u.asInstanceOf[U[X, T]])(Applicative[F].pure)

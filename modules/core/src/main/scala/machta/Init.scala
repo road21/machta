@@ -6,8 +6,10 @@ import machta.InitM.ContainsInit
 
 /** Init tag */
 type Init = Init.type
-object Init
+object Init:
+  given singleTag: SingleTag[Init] = SingleTag.instance
 
+/** Init tag matcher */
 type InitM[X, T] = ContainsInit[WrapTuple[T]] match
   case true => X
   case false => NoValue
