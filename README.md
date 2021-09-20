@@ -33,3 +33,8 @@ User.RawUpdate[F] ~= (name: Option[Option[String]], updated: Instant, roles: (ad
 val user: User.RawCreate[F] = ...
 user.validate // F[User.Create]
 ```
+
+### Related projects
+- https://github.com/Michaelt293/higher-kinded-data
+- https://github.com/scalalandio/ocdquery
+- https://github.com/goosedb/HKD-Example (https://habr.com/ru/post/578070/)
