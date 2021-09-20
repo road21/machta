@@ -39,13 +39,29 @@ object RawForm:
       case _: Any => containsUnch[T](t)
     }
 
-  def validate[H[f[_, _]], U[_, _], F[_]: Applicative](raw: H[RawFormC[F, U]])(using data: Data[H], matcher: Matcher[U]): F[H[U]] =
-    data.innerTraverse[RawFormC[F, U], U, F](raw)(
-      new MatcherTrans[RawFormC[F, U], [x, t] =>> F[U[x, t]]] {
-        def apply[X, T]: Tags[T] ?=> RawFormC[F, U][X, T] => F[U[X, T]] = T ?=> u =>
-          containsUnch[WrapTuple[T]](WrapTuple.wrapTuple(T.value)) match {
-            case true => matcher.traverse[T].traverse(u.asInstanceOf[U[Raw[F, X], T]])(_.validate)
-            case false => matcher.traverse[T].traverse(u.asInstanceOf[U[X, T]])(Applicative[F].pure)
-          }
-      }
-    )
+  def validatableNotRaw[F[_]: Applicative, U[_, _], X, T](using nc: NotContains[T, Unchecked]): Validatable.Aux[F, U[X, T], RawForm[F, X, T, U]] = new Validatable[F, U[X, T]] {
+    type Raw = RawForm[F, X, T, U]
+    def validate(r: RawForm[F, X, T, U]): F[U[X, T]] = (r.asInstanceOf[U[X, T]]).pure[F]
+  }
+
+  def validatableRaw[F[_]: Applicative, U[_, _], X, T](using c: Contains[T, Unchecked], T: Traverse[[x] =>> U[x, T]]): Validatable.Aux[F, U[X, T], RawForm[F, X, T, U]] = new Validatable[F, U[X, T]] {
+    type Raw = RawForm[F, X, T, U]
+    def validate(r: RawForm[F, X, T, U]): F[U[X, T]] =
+      T.traverse(r.asInstanceOf[U[machta.Raw[F, X], T]])(_.validate)
+  }
+
+/** for better instance derivation */
+trait RawFormV[T]:
+  def instance[U[_, _], X, F[_]: Applicative](using T: Traverse[[x] =>> U[x, T]]): Validatable.Aux[F, U[X, T], RawForm[F, X, T, U]]
+
+object RawFormV:
+  given rawFormVNotRaw[T](using nc: NotContains[T, Unchecked]): RawFormV[T] with
+    def instance[U[_, _], X, F[_]: Applicative](using T: Traverse[[x] =>> U[x, T]]): Validatable.Aux[F, U[X, T], RawForm[F, X, T, U]] =
+      RawForm.validatableNotRaw[F, U, X, T]
+
+  given rawFormVRaw[T](using nc: Contains[T, Unchecked]): RawFormV[T] with
+    def instance[U[_, _], X, F[_]: Applicative](using T: Traverse[[x] =>> U[x, T]]): Validatable.Aux[F, U[X, T], RawForm[F, X, T, U]] =
+      RawForm.validatableRaw[F, U, X, T]
+
+  extension [T, U[_, _], X, F[_]](x: RawForm[F, X, T, U])
+    def validateR(using F: Applicative[F], T: Traverse[[x] =>> U[x, T]], V: RawFormV[T]): F[U[X, T]] = V.instance[U, X, F].validate(x)

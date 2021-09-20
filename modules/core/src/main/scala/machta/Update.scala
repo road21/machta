@@ -3,6 +3,8 @@ package machta
 import cats.{Traverse, Applicative}
 import UpdM.FindUpdTag
 import cats.syntax.applicative.*
+import cats.syntax.traverse.*
+import cats.syntax.foldable.*
 
 /** Update tag  */
 type Upd = Upd.type
@@ -38,18 +40,28 @@ object UpdM:
     case (_ *: tail) => FindUpdTag[tail]
     case EmptyTuple => None.type
 
-  given matcherInstance: Matcher[UpdM] with
-    def traverse[Ts]: Traverse[[x] =>> UpdM[x, Ts]] = new Traverse[[x] =>> UpdM[x, Ts]] {
-      def traverse[G[_]: Applicative, A, B](fa: UpdM[A, Ts])(f: A => G[B]): G[UpdM[B, Ts]] =
-        fa match {
-          case NoValue => fa.asInstanceOf[UpdM[B, Ts]].pure[G]
-          case m: UpdateCol[_] =>
-            Traverse[UpdateCol].traverse(m.asInstanceOf[UpdateCol[A]])(f).asInstanceOf[G[UpdM[B, Ts]]]
-          case u: UpdateField[_] =>
-            Traverse[UpdateField].traverse(u.asInstanceOf[UpdateField[A]])(f).asInstanceOf[G[UpdM[B, Ts]]]
-          case x => f(x.asInstanceOf[A]).asInstanceOf[G[UpdM[B, Ts]]]
-        }
+  given traverseUpdReq[Ts](using C: Ts Contains UpdReq): Traverse[[x] =>> UpdM[x, Ts]] with
+    def cast[A](a: UpdM[A, Ts]): A = a.asInstanceOf
 
-      def foldLeft[A, B](fa: UpdM[A, Ts], b: B)(f: (B, A) => B): B = ???
-      def foldRight[A, B](fa: UpdM[A, Ts], lb: cats.Eval[B])(f: (A, cats.Eval[B]) => cats.Eval[B]): cats.Eval[B] = ???
-    }
+    def traverse[G[_]: Applicative, A, B](fa: UpdM[A, Ts])(f: A => G[B]): G[UpdM[B, Ts]] = cast(fa).asInstanceOf[G[UpdM[B, Ts]]]
+    def foldLeft[A, B](fa: UpdM[A, Ts], b: B)(f: (B, A) => B): B = f(b, cast(fa))
+    def foldRight[A, B](fa: UpdM[A, Ts], lb: cats.Eval[B])(f: (A, cats.Eval[B]) => cats.Eval[B]): cats.Eval[B] = f(cast(fa), lb)
+
+  given traverseUpdCol[Ts](using C: Ts NotContains UpdReq, C2: Ts Contains UpdCol): Traverse[[x] =>> UpdM[x, Ts]] with
+    def cast[A](a: UpdM[A, Ts]): UpdateCol[A] = a.asInstanceOf
+
+    def traverse[G[_]: Applicative, A, B](fa: UpdM[A, Ts])(f: A => G[B]): G[UpdM[B, Ts]] = cast(fa).traverse(f).asInstanceOf
+    def foldLeft[A, B](fa: UpdM[A, Ts], b: B)(f: (B, A) => B): B = cast(fa).foldLeft(b)(f)
+    def foldRight[A, B](fa: UpdM[A, Ts], lb: cats.Eval[B])(f: (A, cats.Eval[B]) => cats.Eval[B]): cats.Eval[B] = cast(fa).foldRight(lb)(f)
+
+  given traverseUpd[Ts](using C: Ts NotContains (UpdReq, UpdCol), C3: Ts Contains Upd): Traverse[[x] =>> UpdM[x, Ts]] with
+    def cast[A](a: UpdM[A, Ts]): UpdateField[A] = a.asInstanceOf
+
+    def traverse[G[_]: Applicative, A, B](fa: UpdM[A, Ts])(f: A => G[B]): G[UpdM[B, Ts]] = cast(fa).traverse(f).asInstanceOf
+    def foldLeft[A, B](fa: UpdM[A, Ts], b: B)(f: (B, A) => B): B = cast(fa).foldLeft(b)(f)
+    def foldRight[A, B](fa: UpdM[A, Ts], lb: cats.Eval[B])(f: (A, cats.Eval[B]) => cats.Eval[B]): cats.Eval[B] = cast(fa).foldRight(lb)(f)
+
+  given traverseIgnore[Ts](using C: Ts NotContains (UpdReq, UpdCol, Upd)): Traverse[[x] =>> UpdM[x, Ts]] with
+    def traverse[G[_]: Applicative, A, B](fa: UpdM[A, Ts])(f: A => G[B]): G[UpdM[B, Ts]] = NoValue.asInstanceOf
+    def foldLeft[A, B](fa: UpdM[A, Ts], b: B)(f: (B, A) => B): B = b
+    def foldRight[A, B](fa: UpdM[A, Ts], lb: cats.Eval[B])(f: (A, cats.Eval[B]) => cats.Eval[B]): cats.Eval[B] = lb

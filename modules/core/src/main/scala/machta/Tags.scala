@@ -32,8 +32,10 @@ object NotContains:
     case _ => false
   }
 
-  def instance[Ts, T: SingleTag]: Ts NotContains T = NotContains[Ts, T]
+  def instance[Ts, T]: Ts NotContains T = NotContains[Ts, T]
 
   given different[X: SingleTag, Y: SingleTag](using neq: Eq[X, Y] =:= false): NotContains[X, Y] = instance
-  given empty[X: SingleTag]: NotContains[EmptyTuple, X] = instance
+  given emptyL[X: SingleTag]: NotContains[EmptyTuple, X] = instance
   given head[X: SingleTag, T: SingleTag, Tail <: Tuple](using ncX: X NotContains T, ncT: Tail NotContains T): NotContains[X *: Tail, T] = instance
+  given emptyR[X: SingleTag, Ts](using cx: Ts NotContains X): NotContains[Ts, X *: EmptyTuple] = instance
+  given headR[X: SingleTag, Y <: Tuple, Ts](using cx: Ts NotContains X, cy: Ts NotContains Y): NotContains[Ts, X *: Y] = instance

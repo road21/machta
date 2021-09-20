@@ -17,3 +17,6 @@ object Validatable:
 
       def validate(r: Raw): F[C[E]] = r.traverse(V.validate)
     }
+
+  extension [F[_], R, V](v: R)(using V: Validatable.Aux[F, V, R])
+    def validate: F[V] = V.validate(v)

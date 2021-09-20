@@ -4,9 +4,9 @@ import UpdateField.{Skip, UpdateTo}
 import machta.syntax.no
 import cats.data.Validated
 import ValidationService.{RoleError, PhoneError}
-import org.scalatest._
-import flatspec._
-import matchers._
+import org.scalatest.*
+import flatspec.*
+import matchers.*
 
 class ValidateTest extends AnyFlatSpec with should.Matchers:
   import cats.catsInstancesForId
@@ -25,7 +25,7 @@ class ValidateTest extends AnyFlatSpec with should.Matchers:
     val initU = new User.RawCreate[F](NoValue, name, Raw[Vector[Role]][F](groups), Raw[Phone](phone))
     val init = new User.Create(NoValue, name, groups.map(Role.unsafeApply), Phone.unsafeApply(phone))
 
-    initU.validate should be(Validated.valid(init))
+    initU.validateH should be(Validated.valid(init))
   }
 
   it should "validate correct update data successfully" in {
@@ -50,7 +50,7 @@ class ValidateTest extends AnyFlatSpec with should.Matchers:
       ), UpdateTo(Phone.unsafeApply(phone))
     )
 
-    updU.validate should be (Validated.Valid(upd))
+    updU.validateH should be (Validated.Valid(upd))
   }
 
   it should "collect errors for incorrect init data" in {
@@ -59,7 +59,7 @@ class ValidateTest extends AnyFlatSpec with should.Matchers:
     val phone = "123"
 
     val initU = new User.RawCreate[F](NoValue, name, Raw[Vector[Role]][F](groups), Raw[Phone](phone))
-    initU.validate.fold(_.toList.toSet.map {
+    initU.validateH.fold(_.toList.toSet.map {
       case PhoneError(i, _) => i
       case RoleError(i, _) => i
     }, _ => Set()) should be(Set("1", ";"))
@@ -79,7 +79,7 @@ class ValidateTest extends AnyFlatSpec with should.Matchers:
       ), UpdateTo(Raw[Phone](phone))
     )
 
-    updU.validate.fold(_.toList.toSet.map {
+    updU.validateH.fold(_.toList.toSet.map {
       case PhoneError(i, _) => i
       case RoleError(i, _) => i
     }, _ => Set()) should be(Set(" ", "}", phone))
