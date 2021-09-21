@@ -7,6 +7,7 @@ import ValidationService.{RoleError, PhoneError}
 import org.scalatest.*
 import flatspec.*
 import matchers.*
+import ValidatableHKD.*
 
 class ValidateTest extends AnyFlatSpec with should.Matchers:
   import cats.catsInstancesForId

@@ -13,10 +13,9 @@ case class User[tags[_, _]](
   phone: Phone tags (Init, Upd, Unchecked)
 )
 
-trait ValidatableHKD[H[u[_, _]], U[_, _]]:
-  def instance[F[_]: Applicative]: Validatable.Aux[F, H[U], H[RawFormC[F, U]]]
+object User extends DataCompanion[User] with ValidatableInstances
 
-object User extends DataCompanion[User] {
+trait ValidatableInstances1 {
   // TODO: derive this
   given updMValidate: ValidatableHKD[User, UpdM] with
     def instance[F[_]: Applicative]: Validatable.Aux[F, User[UpdM], User[RawFormC[F, UpdM]]] = new Validatable[F, User[UpdM]] {
@@ -27,7 +26,9 @@ object User extends DataCompanion[User] {
           User[UpdM](id, name, roles, phone)
         )
     }
+}
 
+trait ValidatableInstances extends ValidatableInstances1 {
   given initMValidate: ValidatableHKD[User, InitM] with
     def instance[F[_]: Applicative]: Validatable.Aux[F, User[InitM], User[RawFormC[F, InitM]]] = new Validatable[F, User[InitM]] {
       type Raw = User[RawFormC[F, InitM]]
@@ -37,7 +38,4 @@ object User extends DataCompanion[User] {
           User[InitM](id, name, roles, phone)
         )
     }
-
-  extension [H[u[_, _]], U[_, _], F[_]](x: H[RawFormC[F, U]])
-    def validateH(using V: ValidatableHKD[H, U], F: Applicative[F]): F[H[U]] = V.instance[F].validate(x)
 }
