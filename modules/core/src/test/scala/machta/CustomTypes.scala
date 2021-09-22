@@ -16,6 +16,8 @@ object Phone:
       def validate(r: Raw): F[ValidatedNel[Error, Phone]] = v.phone(r).map(_.toValidatedNel)
     }
 
+  extension (p: Phone) def toString: String = p
+
 opaque type Role = String
 object Role:
   def unsafeApply(str: String): Role = str
@@ -25,3 +27,4 @@ object Role:
 
       def validate(r: Raw): F[ValidatedNel[Error, Role]] = v.role(r).map(_.toValidatedNel)
     }
+  extension (p: Role) def toString: String = p

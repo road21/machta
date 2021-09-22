@@ -10,7 +10,7 @@ lazy val circe =
   .settings(
     name := "machta-circe",
     libraryDependencies ++= Seq(Dependencies.circeCore) ++ Seq(Dependencies.circeParser).map(_ % Test)
-  ).dependsOn(core)
+  ).dependsOn(core % "compile->compile;test->test")
 
 lazy val core =
   (project in file("modules/core"))
