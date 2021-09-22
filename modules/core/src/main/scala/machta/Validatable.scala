@@ -17,3 +17,13 @@ object Validatable:
 
       def validate(r: Raw): F[C[E]] = r.traverse(V.validate)
     }
+
+  extension [F[_], R, V](v: R)(using V: Validatable.Aux[F, V, R])
+    def validate: F[V] = V.validate(v)
+
+trait ValidatableHKD[H[u[_, _]], U[_, _]]:
+  def instance[F[_]: Applicative]: Validatable.Aux[F, H[U], H[RawFormC[F, U]]]
+
+object ValidatableHKD:
+  extension [H[u[_, _]], U[_, _], F[_]](x: H[RawFormC[F, U]])
+    def validateH(using V: ValidatableHKD[H, U], F: Applicative[F]): F[H[U]] = V.instance[F].validate(x)

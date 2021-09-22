@@ -9,15 +9,33 @@ import matchers._
 import io.circe.{Decoder, Encoder}
 import io.circe.parser.parse
 
-final case class User[tags[_, _]](
-  id: Long no tags,
-  name: String tags Init
-)
+class DecodingTest extends AnyFlatSpec with should.Matchers with EncoderInstances with DecoderInstances with CirceInstances:
+  import cats.catsInstancesForId
 
-object User extends DataCompanion[User]
+  type F[A] = ValidatedNT[[x] =>> x, Error][A]
+  given validationSvc: ValidationService[[x] =>> x] = ValidationService.instance
 
-class DecodingTest extends AnyFlatSpec with should.Matchers with EncoderInstances with DecoderInstances:
-  it should "dummy" in {
-    println(parse("""{ "name": "lol" }""").flatMap(Decoder.derived[User.Create].decodeJson))
-    println(Encoder.AsObject.derived[User.Create](new User.Create(NoValue, "Lol")))
+  given validPhone: Validatable.Aux[F, Phone, String] = Phone.valid[[x] =>> x]
+  given validRole: Validatable.Aux[F, Role, String] = Role.valid[[x] =>> x]
+
+
+  it should "decode valid jsons for creation successfully" in {
+    val name = "Paul"
+    val vipRole = "vip"
+    val adminRole = "admin"
+    val phone = "2128506"
+
+    val jsonCreate = s"""{ "name": "$name", "roles": ["$vipRole", "$adminRole"], "phone": "$phone"}""".stripMargin
+    val userCreate = new User.Create(NoValue, Some(name), Vector(vipRole, adminRole).map(Role.unsafeApply), Phone.unsafeApply(phone))
+
+    val jsonRawCreate = s"""{ "name": "$name", "roles": ["$vipRole", "$adminRole"], "phone": "$phone"}""".stripMargin
+    val userRawCreate = new User.RawCreate[F](
+      NoValue,
+      Some(name),
+      Raw[Vector[Role]][F](Vector(vipRole, adminRole)),
+      Raw[Phone](phone)
+    )
+
+    parse(jsonCreate).flatMap(Decoder.derived[User.Create].decodeJson) should be (Right(userCreate))
+    parse(jsonRawCreate).flatMap(Decoder.derived[User.RawCreate[F]].decodeJson) should be (Right(userRawCreate))
   }
