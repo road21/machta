@@ -9,7 +9,7 @@ import matchers._
 import io.circe.{Decoder, Encoder}
 import io.circe.parser.parse
 
-class DecodingTest extends AnyFlatSpec with should.Matchers with EncoderInstances with DecoderInstances with CirceInstances:
+class DecodingTest extends AnyFlatSpec with should.Matchers with EncoderInstances with DecoderInstances with UserCirceInstances:
   import cats.catsInstancesForId
 
   type F[A] = ValidatedNT[[x] =>> x, Error][A]
@@ -17,7 +17,6 @@ class DecodingTest extends AnyFlatSpec with should.Matchers with EncoderInstance
 
   given validPhone: Validatable.Aux[F, Phone, String] = Phone.valid[[x] =>> x]
   given validRole: Validatable.Aux[F, Role, String] = Role.valid[[x] =>> x]
-
 
   it should "decode valid jsons for creation successfully" in {
     val name = "Paul"

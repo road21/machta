@@ -31,7 +31,7 @@ trait DecoderInstances extends DecoderInstances0:
       D.provide[Raw[F, X]].apply(hCursor).asInstanceOf
 
 trait DecoderInstances0:
-  given decoderRaw[F[_], x](using V: Validatable[F, x], d: Decoder[V.Raw]): Decoder[Raw[F, x]] with
+  given decoderRaw[F[_], x](using V: Validatable[F, x])(using d: Decoder[V.Raw]): Decoder[Raw[F, x]] with
     def apply(hCursor: HCursor): Decoder.Result[Raw[F, x]] =
       d(hCursor).map(r => Raw[x](r))
 
